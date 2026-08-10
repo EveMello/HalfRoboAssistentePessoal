@@ -29,7 +29,6 @@ import SpeechRecognitionManager
     from './Speech/SpeechRecognition'
 
 
-
 // ==================================================
 // ELEMENTOS DA INTERFACE
 // ==================================================
@@ -44,7 +43,6 @@ const statusText =
     document.getElementById(
         "status-text"
     )
-
 
 
 // ==================================================
@@ -84,7 +82,6 @@ function atualizarStatus(
 }
 
 
-
 // ==================================================
 // STATUS INICIAL
 // ==================================================
@@ -93,7 +90,6 @@ atualizarStatus(
     "💤",
     'Diga "Ralf" para começar'
 )
-
 
 
 // ==================================================
@@ -110,18 +106,22 @@ scene.background =
     )
 
 
-
 // ==================================================
 // CÂMERA
 // ==================================================
 
 const camera =
     new THREE.PerspectiveCamera(
+
         25,
+
         window.innerWidth /
         window.innerHeight,
+
         0.1,
+
         1000
+
     )
 
 
@@ -137,7 +137,6 @@ camera.lookAt(
     1.45,
     0
 )
-
 
 
 // ==================================================
@@ -164,7 +163,6 @@ renderer.setPixelRatio(
 )
 
 
-
 const avatarContainer =
     document.getElementById(
         "avatar-container"
@@ -176,15 +174,17 @@ avatarContainer.appendChild(
 )
 
 
-
 // ==================================================
 // LUZES
 // ==================================================
 
 const directional =
     new THREE.DirectionalLight(
+
         0xffffff,
+
         2
+
     )
 
 
@@ -200,18 +200,19 @@ scene.add(
 )
 
 
-
 const ambient =
     new THREE.AmbientLight(
+
         0xffffff,
+
         1.5
+
     )
 
 
 scene.add(
     ambient
 )
-
 
 
 // ==================================================
@@ -230,7 +231,6 @@ let speech =
     null
 
 
-
 // ==================================================
 // LOADER VRM
 // ==================================================
@@ -240,12 +240,13 @@ const loader =
 
 
 loader.register(
+
     (parser) =>
         new VRMLoaderPlugin(
             parser
         )
-)
 
+)
 
 
 // ==================================================
@@ -276,7 +277,6 @@ loader.load(
             Math.PI
 
 
-
         // ==================================================
         // AVATAR
         // ==================================================
@@ -287,14 +287,12 @@ loader.load(
             )
 
 
-
         // ==================================================
         // RECONHECIMENTO
         // ==================================================
 
         speech =
             new SpeechRecognitionManager()
-
 
 
         // ==================================================
@@ -306,14 +304,16 @@ loader.load(
             (status) => {
 
                 atualizarStatus(
+
                     status.icone,
+
                     status.texto
+
                 )
 
             }
 
         )
-
 
 
         // ==================================================
@@ -322,10 +322,12 @@ loader.load(
 
         robot =
             new Robot(
-                avatar,
-                speech
-            )
 
+                avatar,
+
+                speech
+
+            )
 
 
         // ==================================================
@@ -377,7 +379,6 @@ loader.load(
                     )
 
 
-
                     // ==================================================
                     // VERIFICAR SE CONVERSA CONTINUA
                     // ==================================================
@@ -398,14 +399,7 @@ loader.load(
 
 
                         // ==================================================
-                        // IMPORTANTE
-                        //
-                        // Este método:
-                        //
-                        // 1. Mantém conversaAtiva = true
-                        // 2. Renova timer de 15 segundos
-                        // 3. Muda status para listening
-                        // 4. Inicia novo ciclo do microfone
+                        // Continua conversa
                         // ==================================================
 
                         speech.continuarConversa()
@@ -444,7 +438,6 @@ loader.load(
                     )
 
 
-
                     // ==================================================
                     // EM CASO DE ERRO
                     // ==================================================
@@ -453,9 +446,6 @@ loader.load(
                         speech.isConversationActive()
                     ) {
 
-
-                        // Renova timer
-                        // e continua conversa
 
                         speech.continuarConversa()
 
@@ -475,7 +465,6 @@ loader.load(
             }
 
         )
-
 
 
         // ==================================================
@@ -498,13 +487,11 @@ loader.load(
             iniciarSessao
 
 
-
         // ==================================================
         // INICIAR SESSÃO
         // ==================================================
 
         await iniciarSessao()
-
 
 
         // ==================================================
@@ -517,13 +504,11 @@ loader.load(
         )
 
 
-
         // ==================================================
         // INICIAR MICROFONE
         // ==================================================
 
         speech.start()
-
 
 
         // ==================================================
@@ -557,12 +542,12 @@ loader.load(
 
         console.log(
             "===================================="
+
         )
 
     }
 
 )
-
 
 
 // ==================================================
@@ -571,7 +556,6 @@ loader.load(
 
 const clock =
     new THREE.Clock()
-
 
 
 // ==================================================
@@ -609,7 +593,6 @@ function animate() {
 
 
 animate()
-
 
 
 // ==================================================

@@ -1,57 +1,278 @@
-const API_URL = "http://localhost:3000";
+const API_URL =
+    "http://localhost:3000";
 
 
 // ======================================================
-// Fazer uma pergunta para o Raufi
+// FAZER UMA PERGUNTA PARA O HALF
 // ======================================================
 
-export async function perguntar(mensagem) {
+export async function perguntar(
+    mensagem
+) {
 
-    const response = await fetch(`${API_URL}/chat`, {
+    // ==================================================
+    // VALIDAR MENSAGEM
+    // ==================================================
 
-        method: "POST",
+    if (
+        typeof mensagem !== "string" ||
+        !mensagem.trim()
+    ) {
 
-        headers: {
-            "Content-Type": "application/json"
-        },
+        throw new Error(
+            "A mensagem enviada para a API está vazia ou inválida."
+        );
 
-        body: JSON.stringify({
+    }
 
-            message: mensagem
 
-        })
+    console.log(
+        "📡 Enviando mensagem para:",
+        `${API_URL}/chat`
+    );
 
-    });
 
-    const data = await response.json();
+    console.log(
+        "📤 Mensagem:",
+        mensagem
+    );
 
-    return data.response;
+
+    try {
+
+        const response =
+            await fetch(
+                `${API_URL}/chat`,
+                {
+
+                    method: "POST",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json"
+
+                    },
+
+                    body:
+                        JSON.stringify({
+
+                            message:
+                                mensagem.trim()
+
+                        })
+
+                }
+            );
+
+
+        // ==================================================
+        // TENTAR LER RESPOSTA
+        // ==================================================
+
+        let data;
+
+
+        try {
+
+            data =
+                await response.json();
+
+        } catch (
+            erro
+        ) {
+
+            console.error(
+                "❌ O servidor não retornou um JSON válido."
+            );
+
+
+            throw new Error(
+                `Servidor retornou uma resposta inválida. HTTP ${response.status}.`
+            );
+
+        }
+
+
+        // ==================================================
+        // VERIFICAR STATUS HTTP
+        // ==================================================
+
+        if (
+            !response.ok
+        ) {
+
+            console.error(
+                "❌ Erro da API:",
+                data
+            );
+
+
+            throw new Error(
+                data.error ||
+                `Erro HTTP ${response.status}.`
+            );
+
+        }
+
+
+        // ==================================================
+        // VERIFICAR RESPOSTA
+        // ==================================================
+
+        if (
+            !data ||
+            typeof data.response !== "string"
+        ) {
+
+            console.error(
+                "❌ Resposta da API não possui o campo 'response':",
+                data
+            );
+
+
+            throw new Error(
+                "A API não retornou uma resposta válida do HALF."
+            );
+
+        }
+
+
+        console.log(
+            "📥 Resposta recebida da API:"
+        );
+
+
+        console.log(
+            data.response
+        );
+
+
+        // ==================================================
+        // RETORNAR RESPOSTA
+        // ==================================================
+
+        return data.response;
+
+
+    } catch (
+        erro
+    ) {
+
+        console.error(
+            "❌ Erro ao comunicar com o backend:",
+            erro
+        );
+
+
+        throw erro;
+
+    }
 
 }
 
 
 // ======================================================
-// Iniciar uma nova sessão
+// INICIAR UMA NOVA SESSÃO
 // ======================================================
 
 export async function iniciarSessao() {
 
-    console.log("🧹 Iniciando nova sessão...");
+    console.log(
+        "🧹 Iniciando nova sessão..."
+    );
 
-    const response = await fetch(`${API_URL}/session/start`, {
 
-        method: "POST",
+    try {
 
-        headers: {
-            "Content-Type": "application/json"
+        const response =
+            await fetch(
+                `${API_URL}/session/start`,
+                {
+
+                    method: "POST",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json"
+
+                    }
+
+                }
+            );
+
+
+        // ==================================================
+        // LER RESPOSTA
+        // ==================================================
+
+        let data;
+
+
+        try {
+
+            data =
+                await response.json();
+
+        } catch (
+            erro
+        ) {
+
+            throw new Error(
+                `Servidor retornou uma resposta inválida ao iniciar sessão. HTTP ${response.status}.`
+            );
+
         }
 
-    });
 
-    const data = await response.json();
+        // ==================================================
+        // VERIFICAR ERRO
+        // ==================================================
 
-    console.log("🆕 Nova sessão iniciada!");
+        if (
+            !response.ok
+        ) {
 
-    return data;
+            console.error(
+                "❌ Erro ao iniciar sessão:",
+                data
+            );
+
+
+            throw new Error(
+                data.error ||
+                `Erro HTTP ${response.status}.`
+            );
+
+        }
+
+
+        console.log(
+            "🆕 Nova sessão iniciada!"
+        );
+
+
+        console.log(
+            data
+        );
+
+
+        return data;
+
+
+    } catch (
+        erro
+    ) {
+
+        console.error(
+            "❌ Erro ao iniciar nova sessão:",
+            erro
+        );
+
+
+        throw erro;
+
+    }
 
 }

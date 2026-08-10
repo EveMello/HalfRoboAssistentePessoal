@@ -80,14 +80,50 @@ export default class SpeechRecognitionManager {
 
 
         // ==================================================
-        // CONTROLE DO RECONHECIMENTO
+        // CONTROLE DO CICLO
         // ==================================================
+
+        /*
+         * Indica que queremos iniciar outro ciclo
+         * de reconhecimento assim que o atual terminar.
+         */
 
         this.deveContinuarOuvindo =
             false;
 
+
+        /*
+         * Indica que o reconhecimento foi parado
+         * manualmente porque o HALF vai processar/falar.
+         */
+
         this.paradaManual =
             false;
+
+
+        /*
+         * Indica que o usuário acabou de falar e
+         * estamos esperando o Robot terminar.
+         */
+
+        this.processandoResposta =
+            false;
+
+
+        /*
+         * Evita chamadas duplicadas de start().
+         */
+
+        this.startPendente =
+            false;
+
+
+        /*
+         * Timer utilizado para iniciar um novo ciclo.
+         */
+
+        this.timerStart =
+            null;
 
 
         // ==================================================
@@ -108,8 +144,24 @@ export default class SpeechRecognitionManager {
         this.recognition.onresult =
             (event) => {
 
+                const resultado =
+                    event.results[
+                        event.results.length - 1
+                    ];
+
+
+                if (
+                    !resultado ||
+                    !resultado[0]
+                ) {
+
+                    return;
+
+                }
+
+
                 const texto =
-                    event.results[0][0].transcript
+                    resultado[0].transcript
                         .toLowerCase()
                         .trim();
 
@@ -145,10 +197,14 @@ export default class SpeechRecognitionManager {
                         );
 
 
-                        // Continua aguardando Ralf
+                        /*
+                         * O ciclo atual vai terminar naturalmente.
+                         * O onend cuidará de iniciar outro.
+                         */
 
                         this.deveContinuarOuvindo =
                             true;
+
 
                         return;
 
@@ -168,16 +224,12 @@ export default class SpeechRecognitionManager {
                         true;
 
 
-                    // ==================================================
-                    // INICIAR / RENOVAR TIMER
-                    // ==================================================
+                    /*
+                     * O usuário acabou de ativar o HALF.
+                     * A partir daqui, ele não precisa mais falar
+                     * "Ralf" durante essa conversa.
+                     */
 
-                    this.resetarTimerInatividade();
-
-
-                    // ==================================================
-                    // REMOVER RALF DO TEXTO
-                    // ==================================================
 
                     const pergunta =
                         this.removerPalavraAtivacao(
@@ -186,8 +238,7 @@ export default class SpeechRecognitionManager {
 
 
                     // ==================================================
-                    // USUÁRIO DISSE APENAS:
-                    // "RALF"
+                    // USUÁRIO DISSE APENAS "RALF"
                     // ==================================================
 
                     if (!pergunta) {
@@ -196,9 +247,30 @@ export default class SpeechRecognitionManager {
                             "🤖 Ralf ativado."
                         );
 
+
                         console.log(
                             "🎤 Aguardando pergunta..."
                         );
+
+
+                        /*
+                         * Ainda estamos em um ciclo de reconhecimento.
+                         * O onend vai iniciar o próximo.
+                         */
+
+                        this.deveContinuarOuvindo =
+                            true;
+
+
+                        this.paradaManual =
+                            false;
+
+
+                        this.processandoResposta =
+                            false;
+
+
+                        this.resetarTimerInatividade();
 
 
                         this.atualizarStatus(
@@ -208,37 +280,46 @@ export default class SpeechRecognitionManager {
                         );
 
 
-                        // O ciclo atual termina,
-                        // mas devemos ouvir novamente.
-
-                        this.deveContinuarOuvindo =
-                            true;
-
-
                         return;
 
                     }
 
 
                     // ==================================================
-                    // USUÁRIO DISSE:
-                    // "RALF, ONDE FICA A BIBLIOTECA?"
+                    // RALF + PERGUNTA NA MESMA FRASE
                     // ==================================================
 
                     console.log(
                         "🧠 Pergunta inicial detectada:"
                     );
 
+
                     console.log(
                         pergunta
                     );
 
 
+                    /*
+                     * NÃO inicia outro reconhecimento agora.
+                     *
+                     * O main.js vai parar o reconhecimento,
+                     * enviar a pergunta para o Robot e esperar
+                     * o HALF terminar de falar.
+                     */
+
                     this.deveContinuarOuvindo =
                         false;
 
 
-                    this.resetarTimerInatividade();
+                    this.processandoResposta =
+                        true;
+
+
+                    this.paradaManual =
+                        true;
+
+
+                    this.limparTimerInatividade();
 
 
                     this.atualizarStatus(
@@ -283,24 +364,39 @@ export default class SpeechRecognitionManager {
                 );
 
 
-                // ==================================================
-                // MUITO IMPORTANTE
-                //
-                // Toda vez que o usuário falar,
-                // o timer de 15 segundos é reiniciado.
-                // ==================================================
+                /*
+                 * O usuário falou.
+                 *
+                 * A partir deste momento:
+                 *
+                 * reconhecimento
+                 *       ↓
+                 * processamento
+                 *       ↓
+                 * resposta
+                 *       ↓
+                 * novo reconhecimento
+                 */
 
-                this.resetarTimerInatividade();
-
-
-                // ==================================================
-                // PARAR REINÍCIO AUTOMÁTICO
-                //
-                // O main.js vai processar a pergunta.
-                // ==================================================
 
                 this.deveContinuarOuvindo =
                     false;
+
+
+                this.processandoResposta =
+                    true;
+
+
+                this.paradaManual =
+                    true;
+
+
+                /*
+                 * O timer NÃO deve continuar contando
+                 * enquanto o HALF está processando a pergunta.
+                 */
+
+                this.limparTimerInatividade();
 
 
                 this.atualizarStatus(
@@ -336,12 +432,8 @@ export default class SpeechRecognitionManager {
                 );
 
 
-                this.isListening =
-                    false;
-
-
                 // ==================================================
-                // NENHUMA FALA
+                // NO-SPEECH
                 // ==================================================
 
                 if (
@@ -354,8 +446,10 @@ export default class SpeechRecognitionManager {
                     );
 
 
-                    // Se estiver aguardando Ralf,
-                    // continua ouvindo.
+                    /*
+                     * Se estamos apenas esperando Ralf,
+                     * o reconhecimento deve voltar sozinho.
+                     */
 
                     if (
                         !this.conversaAtiva
@@ -366,11 +460,30 @@ export default class SpeechRecognitionManager {
 
                     }
 
+
+                    /*
+                     * Se estamos em uma conversa ativa
+                     * e não estamos processando uma resposta,
+                     * também devemos continuar ouvindo.
+                     */
+
+                    else if (
+                        !this.processandoResposta
+                    ) {
+
+                        this.deveContinuarOuvindo =
+                            true;
+
+                    }
+
+
+                    return;
+
                 }
 
 
                 // ==================================================
-                // MICROFONE ABORTADO
+                // ABORTED
                 // ==================================================
 
                 if (
@@ -382,7 +495,20 @@ export default class SpeechRecognitionManager {
                         "🎤 Reconhecimento interrompido."
                     );
 
+
+                    return;
+
                 }
+
+
+                // ==================================================
+                // OUTROS ERROS
+                // ==================================================
+
+                console.error(
+                    "❌ Erro inesperado no reconhecimento:",
+                    event.error
+                );
 
             };
 
@@ -394,6 +520,11 @@ export default class SpeechRecognitionManager {
         this.recognition.onend =
             () => {
 
+                /*
+                 * Somente agora o navegador confirmou
+                 * que o reconhecimento realmente terminou.
+                 */
+
                 this.isListening =
                     false;
 
@@ -404,27 +535,50 @@ export default class SpeechRecognitionManager {
 
 
                 // ==================================================
-                // REINICIAR AUTOMATICAMENTE
+                // SE ESTÁ PROCESSANDO
                 // ==================================================
 
                 if (
-                    this.deveContinuarOuvindo &&
-                    !this.paradaManual
+                    this.processandoResposta
                 ) {
 
                     console.log(
-                        "🎤 Voltando a ouvir..."
+                        "🧠 HALF está processando. Não reiniciar microfone."
                     );
 
 
-                    setTimeout(
-                        () => {
+                    return;
 
-                            this.start();
+                }
 
-                        },
-                        300
+
+                // ==================================================
+                // SE FOI PARADA MANUAL
+                // ==================================================
+
+                if (
+                    this.paradaManual
+                ) {
+
+                    console.log(
+                        "🛑 Reconhecimento parado manualmente."
                     );
+
+
+                    return;
+
+                }
+
+
+                // ==================================================
+                // CONTINUAR OUVINDO
+                // ==================================================
+
+                if (
+                    this.deveContinuarOuvindo
+                ) {
+
+                    this.agendarInicio();
 
                 }
 
@@ -521,6 +675,112 @@ export default class SpeechRecognitionManager {
 
 
     // ==================================================
+    // AGENDAR NOVO CICLO
+    // ==================================================
+
+    agendarInicio() {
+
+        /*
+         * Evita criar vários timers de start.
+         */
+
+        if (
+            this.timerStart
+        ) {
+
+            return;
+
+        }
+
+
+        /*
+         * Se não devemos ouvir, não fazemos nada.
+         */
+
+        if (
+            !this.deveContinuarOuvindo
+        ) {
+
+            return;
+
+        }
+
+
+        /*
+         * Nunca inicia enquanto o HALF estiver processando.
+         */
+
+        if (
+            this.processandoResposta
+        ) {
+
+            return;
+
+        }
+
+
+        /*
+         * Pequeno intervalo para permitir que o navegador
+         * finalize completamente o ciclo anterior.
+         */
+
+        console.log(
+            "🎤 Preparando próximo ciclo..."
+        );
+
+
+        this.timerStart =
+            setTimeout(
+                () => {
+
+                    this.timerStart =
+                        null;
+
+
+                    if (
+                        !this.deveContinuarOuvindo
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    if (
+                        this.processandoResposta
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    if (
+                        this.isListening
+                    ) {
+
+                        console.log(
+                            "🎤 Já está ouvindo. Nenhum novo start necessário."
+                        );
+
+
+                        return;
+
+                    }
+
+
+                    this.start();
+
+                },
+
+                300
+
+            );
+
+    }
+
+
+    // ==================================================
     // INICIAR MICROFONE
     // ==================================================
 
@@ -535,31 +795,71 @@ export default class SpeechRecognitionManager {
         }
 
 
+        // ==================================================
+        // NÃO INICIAR SE JÁ ESTIVER OUVINDO
+        // ==================================================
+
         if (
             this.isListening
         ) {
+
+            console.log(
+                "🎤 Microfone já está ativo."
+            );
+
 
             return;
 
         }
 
 
-        try {
+        // ==================================================
+        // NÃO INICIAR DURANTE PROCESSAMENTO
+        // ==================================================
 
-            // ==================================================
-            // IMPORTANTE
-            //
-            // start() pode ser chamado tanto:
-            //
-            // 1. esperando Ralf
-            // 2. durante conversa ativa
-            //
-            // Nunca altera conversaAtiva.
-            // ==================================================
+        if (
+            this.processandoResposta
+        ) {
+
+            console.log(
+                "🧠 HALF ainda está processando. Start ignorado."
+            );
+
+
+            return;
+
+        }
+
+
+        // ==================================================
+        // LIMPAR TIMER DE START
+        // ==================================================
+
+        if (
+            this.timerStart
+        ) {
+
+            clearTimeout(
+                this.timerStart
+            );
+
+            this.timerStart =
+                null;
+
+        }
+
+
+        try {
 
             this.paradaManual =
                 false;
 
+
+            /*
+             * Só marcamos como ouvindo antes do start.
+             *
+             * Se o navegador lançar erro, voltamos para false.
+             */
 
             this.isListening =
                 true;
@@ -615,6 +915,28 @@ export default class SpeechRecognitionManager {
             this.isListening =
                 false;
 
+
+            /*
+             * InvalidStateError geralmente significa que o
+             * navegador ainda considera o reconhecimento ativo.
+             *
+             * Nesse caso esperamos um pouco e tentamos novamente.
+             */
+
+            if (
+                erro.name ===
+                "InvalidStateError"
+            ) {
+
+                console.log(
+                    "⏳ Navegador ainda está encerrando o reconhecimento. Tentando novamente..."
+                );
+
+
+                this.agendarInicio();
+
+            }
+
         }
 
     }
@@ -640,14 +962,15 @@ export default class SpeechRecognitionManager {
         );
 
 
-        // ==================================================
-        // IMPORTANTE
-        //
-        // NÃO encerra conversa.
-        //
-        // Apenas pausa reconhecimento enquanto
-        // o robô processa e fala.
-        // ==================================================
+        /*
+         * IMPORTANTE:
+         *
+         * NÃO colocamos isListening = false aqui.
+         *
+         * O reconhecimento ainda pode estar ativo.
+         *
+         * Somente o evento onend confirma que ele terminou.
+         */
 
         this.paradaManual =
             true;
@@ -657,8 +980,25 @@ export default class SpeechRecognitionManager {
             false;
 
 
-        this.isListening =
-            false;
+        this.limparTimerInatividade();
+
+
+        /*
+         * Cancela eventual tentativa de iniciar outro ciclo.
+         */
+
+        if (
+            this.timerStart
+        ) {
+
+            clearTimeout(
+                this.timerStart
+            );
+
+            this.timerStart =
+                null;
+
+        }
 
 
         try {
@@ -680,26 +1020,56 @@ export default class SpeechRecognitionManager {
 
 
     // ==================================================
+    // LIMPAR TIMER DE INATIVIDADE
+    // ==================================================
+
+    limparTimerInatividade() {
+
+        if (
+            this.timerInatividade
+        ) {
+
+            clearTimeout(
+                this.timerInatividade
+            );
+
+        }
+
+
+        this.timerInatividade =
+            null;
+
+    }
+
+
+    // ==================================================
     // RENOVAR TIMER DE INATIVIDADE
     // ==================================================
 
     resetarTimerInatividade() {
 
-        // ==================================================
-        // Cancela timer anterior
-        // ==================================================
-
-        clearTimeout(
-            this.timerInatividade
-        );
+        this.limparTimerInatividade();
 
 
         // ==================================================
-        // Só cria timer se a conversa estiver ativa
+        // SÓ EXISTE TIMER DURANTE CONVERSA ATIVA
         // ==================================================
 
         if (
             !this.conversaAtiva
+        ) {
+
+            return;
+
+        }
+
+
+        // ==================================================
+        // NÃO CONTAR DURANTE PROCESSAMENTO
+        // ==================================================
+
+        if (
+            this.processandoResposta
         ) {
 
             return;
@@ -716,6 +1086,22 @@ export default class SpeechRecognitionManager {
             setTimeout(
                 () => {
 
+                    /*
+                     * Segurança:
+                     *
+                     * Se o HALF estiver processando ou falando,
+                     * não encerramos a conversa.
+                     */
+
+                    if (
+                        this.processandoResposta
+                    ) {
+
+                        return;
+
+                    }
+
+
                     this.encerrarConversa();
 
                 },
@@ -728,14 +1114,19 @@ export default class SpeechRecognitionManager {
 
 
     // ==================================================
-    // MÉTODO PARA CHAMAR QUANDO ROBÔ TERMINAR DE FALAR
+    // CONTINUAR CONVERSA
     // ==================================================
 
     continuarConversa() {
 
+        /*
+         * Este método é chamado pelo main.js
+         * somente depois que o Robot terminou de responder.
+         */
+
+
         // ==================================================
-        // Se a conversa já foi encerrada,
-        // não volta a ouvir.
+        // VERIFICAR CONVERSA
         // ==================================================
 
         if (
@@ -746,31 +1137,53 @@ export default class SpeechRecognitionManager {
                 "💤 Conversa não está mais ativa."
             );
 
+
             return;
 
         }
 
 
         console.log(
-            "🟢 Conversa continua ativa."
+            "================================="
+        );
+
+
+        console.log(
+            "🟢 HALF terminou de falar."
+        );
+
+
+        console.log(
+            "🎤 Preparando para ouvir novamente..."
         );
 
 
         // ==================================================
-        // MUITO IMPORTANTE
-        //
-        // Renova os 15 segundos DEPOIS da resposta.
-        //
-        // Isso evita que o timer antigo encerre a conversa
-        // enquanto o robô está falando.
+        // LIBERAR PROCESSAMENTO
         // ==================================================
 
-        this.resetarTimerInatividade();
+        this.processandoResposta =
+            false;
+
+
+        this.paradaManual =
+            false;
 
 
         this.deveContinuarOuvindo =
             true;
 
+
+        // ==================================================
+        // RENOVAR TIMER
+        // ==================================================
+
+        this.resetarTimerInatividade();
+
+
+        // ==================================================
+        // STATUS
+        // ==================================================
 
         this.atualizarStatus(
             "listening",
@@ -779,17 +1192,38 @@ export default class SpeechRecognitionManager {
         );
 
 
-        // ==================================================
-        // Iniciar novo ciclo de reconhecimento
-        // ==================================================
+        /*
+         * Se o reconhecimento anterior ainda estiver
+         * encerrando, NÃO damos start agora.
+         *
+         * O onend vai perceber que devemos continuar
+         * e chamará agendarInicio().
+         */
 
         if (
-            !this.isListening
+            this.isListening
         ) {
 
-            this.start();
+            console.log(
+                "⏳ Reconhecimento anterior ainda está encerrando."
+            );
+
+
+            console.log(
+                "🎤 O próximo ciclo será iniciado pelo onend."
+            );
+
+
+            return;
 
         }
+
+
+        /*
+         * Se já terminou, podemos iniciar o próximo ciclo.
+         */
+
+        this.agendarInicio();
 
     }
 
@@ -799,6 +1233,11 @@ export default class SpeechRecognitionManager {
     // ==================================================
 
     encerrarConversa() {
+
+        console.log(
+            "================================="
+        );
+
 
         console.log(
             "⏱️ Tempo de inatividade atingido."
@@ -818,25 +1257,37 @@ export default class SpeechRecognitionManager {
             false;
 
 
+        this.processandoResposta =
+            false;
+
+
+        this.deveContinuarOuvindo =
+            true;
+
+
         // ==================================================
         // CANCELAR TIMER
         // ==================================================
 
-        clearTimeout(
-            this.timerInatividade
-        );
-
-
-        this.timerInatividade =
-            null;
+        this.limparTimerInatividade();
 
 
         // ==================================================
-        // PARAR CONTROLE AUTOMÁTICO
+        // LIMPAR TIMER DE START
         // ==================================================
 
-        this.deveContinuarOuvindo =
-            true;
+        if (
+            this.timerStart
+        ) {
+
+            clearTimeout(
+                this.timerStart
+            );
+
+            this.timerStart =
+                null;
+
+        }
 
 
         // ==================================================
@@ -873,17 +1324,48 @@ export default class SpeechRecognitionManager {
         );
 
 
-        // ==================================================
-        // VOLTAR A OUVIR
-        // ==================================================
+        /*
+         * Se o reconhecimento estiver ativo,
+         * pedimos para ele parar.
+         *
+         * O onend será responsável por iniciar
+         * novamente no modo de espera.
+         */
 
         if (
-            !this.isListening
+            this.isListening
         ) {
 
-            this.start();
+            this.paradaManual =
+                false;
+
+
+            try {
+
+                this.recognition.stop();
+
+            } catch (
+                erro
+            ) {
+
+                console.error(
+                    "❌ Erro ao encerrar reconhecimento:",
+                    erro
+                );
+
+            }
+
+
+            return;
 
         }
+
+
+        // ==================================================
+        // SE JÁ ESTIVER PARADO
+        // ==================================================
+
+        this.agendarInicio();
 
     }
 

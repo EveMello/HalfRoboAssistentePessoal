@@ -1,21 +1,92 @@
-export function limparTexto(texto) {
+export function limparTexto(
+    texto
+) {
+
+    // ==================================================
+    // VALIDAR TEXTO
+    // ==================================================
+
+    if (
+        typeof texto !== "string"
+    ) {
+
+        console.error(
+            "❌ TextCleaner recebeu um valor inválido:",
+            texto
+        );
+
+
+        throw new Error(
+            "Não foi possível limpar a resposta porque ela não é um texto válido."
+        );
+
+    }
+
+
+    // ==================================================
+    // LIMPAR TEXTO
+    // ==================================================
 
     return texto
 
-        // Markdown
-        .replace(/\*\*/g, "")
-        .replace(/\*/g, "")
-        .replace(/__/g, "")
-        .replace(/`/g, "")
+        // ==================================================
+        // MARKDOWN
+        // ==================================================
 
-        // Emojis (remove praticamente todos)
-        .replace(/[\u{1F300}-\u{1FAFF}]/gu, "")
+        .replace(
+            /\*\*/g,
+            ""
+        )
 
-        // Quebras de linha
-        .replace(/\n/g, " ")
+        .replace(
+            /\*/g,
+            ""
+        )
 
-        // Espaços repetidos
-        .replace(/\s+/g, " ")
+        .replace(
+            /__/g,
+            ""
+        )
+
+        .replace(
+            /`/g,
+            ""
+        )
+
+
+        // ==================================================
+        // EMOJIS
+        // ==================================================
+
+        .replace(
+            /[\u{1F300}-\u{1FAFF}]/gu,
+            ""
+        )
+
+
+        // ==================================================
+        // QUEBRAS DE LINHA
+        // ==================================================
+
+        .replace(
+            /\n/g,
+            " "
+        )
+
+
+        // ==================================================
+        // ESPAÇOS REPETIDOS
+        // ==================================================
+
+        .replace(
+            /\s+/g,
+            " "
+        )
+
+
+        // ==================================================
+        // REMOVER ESPAÇOS DAS EXTREMIDADES
+        // ==================================================
 
         .trim();
 

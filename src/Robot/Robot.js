@@ -1,7 +1,6 @@
 import { perguntar } from "../Chat/ChatAPI";
 import { limparTexto } from "../Utils/TextCleaner";
 
-
 export class Robot {
 
     constructor(
@@ -32,6 +31,26 @@ export class Robot {
         try {
 
             // ==================================================
+            // VALIDAR TEXTO
+            // ==================================================
+
+            if (
+                typeof texto !== "string" ||
+                !texto.trim()
+            ) {
+
+                throw new Error(
+                    "A pergunta recebida pelo robô está vazia ou inválida."
+                );
+
+            }
+
+
+            texto =
+                texto.trim();
+
+
+            // ==================================================
             // ESTADO: THINKING
             // ==================================================
 
@@ -50,19 +69,52 @@ export class Robot {
             );
 
 
-            this.avatar.setState(
-                "thinking"
-            );
+            if (
+                this.avatar
+            ) {
+
+                this.avatar.setState(
+                    "thinking"
+                );
+
+            }
 
 
             // ==================================================
             // PERGUNTAR PARA IA
             // ==================================================
 
+            console.log(
+                "🧠 Enviando pergunta para a IA..."
+            );
+
+
             let resposta =
                 await perguntar(
                     texto
                 );
+
+
+            // ==================================================
+            // VALIDAR RESPOSTA
+            // ==================================================
+
+            if (
+                typeof resposta !== "string" ||
+                !resposta.trim()
+            ) {
+
+                throw new Error(
+                    "A IA não retornou uma resposta válida."
+                );
+
+            }
+
+
+            console.log(
+                "📥 Resposta recebida da IA:",
+                resposta
+            );
 
 
             // ==================================================
@@ -75,8 +127,23 @@ export class Robot {
                 );
 
 
+            // ==================================================
+            // VALIDAR RESPOSTA APÓS LIMPEZA
+            // ==================================================
+
+            if (
+                !resposta
+            ) {
+
+                throw new Error(
+                    "A resposta da IA ficou vazia após a limpeza."
+                );
+
+            }
+
+
             console.log(
-                "🤖 Robô:",
+                "🤖 HALF:",
                 resposta
             );
 
@@ -90,13 +157,19 @@ export class Robot {
 
 
             console.log(
-                "🗣️ Robô está respondendo..."
+                "🗣️ HALF está respondendo..."
             );
 
 
-            this.avatar.setState(
-                "speaking"
-            );
+            if (
+                this.avatar
+            ) {
+
+                this.avatar.setState(
+                    "speaking"
+                );
+
+            }
 
 
             // ==================================================
@@ -121,18 +194,31 @@ export class Robot {
             // ROBÔ FALA
             // ==================================================
 
-            await this.avatar.speak(
-                resposta
-            );
+            if (
+                this.avatar &&
+                this.avatar.speak
+            ) {
+
+                await this.avatar.speak(
+                    resposta
+                );
+
+            }
 
 
             // ==================================================
             // VOLTAR PARA IDLE
             // ==================================================
 
-            this.avatar.setState(
-                "idle"
-            );
+            if (
+                this.avatar
+            ) {
+
+                this.avatar.setState(
+                    "idle"
+                );
+
+            }
 
 
             this.estado =
@@ -141,6 +227,11 @@ export class Robot {
 
             console.log(
                 "✅ Conversa finalizada."
+            );
+
+
+            console.log(
+                "================================="
             );
 
 
